@@ -5,9 +5,9 @@ from sc2 import Race, Difficulty
 from sc2.player import Bot, Computer
 
 from bots.HelBot import *
-from bots.SentaBot import *
 
 os.environ["SC2PATH"] = "G:\\BattleNet\\StarCraft II"
+
 
 def main():
     player_config = [

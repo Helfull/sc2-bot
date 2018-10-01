@@ -1,3 +1,7 @@
+BasicCNN-*
+log.txt
+train_data/
+train_data_intel/
 logs/
 # Byte-compiled / optimized / DLL files
 __pycache__/

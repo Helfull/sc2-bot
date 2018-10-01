@@ -1,10 +1,8 @@
 from sc2.constants import *
+from .Action import Action
 
 
-class BuildAssimilators:
-
-    def __init__(self, ai):
-        self.ai = ai
+class BuildAssimilators(Action):
 
     async def handle(self):
         for nexus in self.ai.units(NEXUS).ready:

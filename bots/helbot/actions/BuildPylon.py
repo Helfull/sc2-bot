@@ -1,10 +1,8 @@
 from sc2.constants import *
+from .Action import Action
 
 
-class BuildPylon:
-
-    def __init__(self, ai):
-        self.ai = ai
+class BuildPylon(Action):
 
     async def handle(self):
         if self.ai.supply_left < 5 and not self.ai.already_pending(PYLON):

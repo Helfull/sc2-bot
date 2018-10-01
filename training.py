@@ -1,16 +1,20 @@
+import tensorflow as tf
+import keras.backend.tensorflow_backend as backend
 import keras  # Keras 2.1.2 and TF-GPU 1.9.0
 from keras.models import Sequential
-from keras.layers import Dense, Dropout, Flatten
+from keras.layers import Dense, Dropout, Flatten, Activation
 from keras.layers import Conv2D, MaxPooling2D
 from keras.callbacks import TensorBoard
 import numpy as np
 import os
 import random
+import cv2
+import time
+import traceback
 
 
 model = Sequential()
-
-model.add(Conv2D(32, (3, 3), padding='same',
+model.add(Conv2D(32, (7, 7), padding='same',
                  input_shape=(176, 200, 3),
                  activation='relu'))
 model.add(Conv2D(32, (3, 3), activation='relu'))
@@ -30,28 +34,27 @@ model.add(MaxPooling2D(pool_size=(2, 2)))
 model.add(Dropout(0.2))
 
 model.add(Flatten())
-model.add(Dense(512, activation='relu'))
+model.add(Dense(1024, activation='relu'))
 model.add(Dropout(0.5))
-model.add(Dense(4, activation='softmax'))
+model.add(Dense(14, activation='softmax'))
 
-learning_rate = 0.0001
-opt = keras.optimizers.adam(lr=learning_rate, decay=1e-6)
+learning_rate = 0.001
+opt = keras.optimizers.adam(lr=learning_rate)  # , decay=1e-6)
 
 model.compile(loss='categorical_crossentropy',
               optimizer=opt,
               metrics=['accuracy'])
 
-tensorboard = TensorBoard(log_dir="logs/STAGE1")
+tensorboard = TensorBoard(
+    log_dir="logs/STAGE2-{}-{}".format(int(time.time()), learning_rate))
 
 train_data_dir = "train_data_intel"
 
+# model = keras.models.load_model('BasicCNN-10-epochs-0.0001-LR-STAGE1')
+ACTION_SIZE = 14
 
-def check_data():
-    choices = {"no_attacks": no_attacks,
-               "attack_closest_to_nexus": attack_closest_to_nexus,
-               "attack_enemy_structures": attack_enemy_structures,
-               "attack_enemy_start": attack_enemy_start}
 
+def check_data(choices):
     total_data = 0
 
     lengths = []
@@ -64,74 +67,91 @@ def check_data():
     return lengths
 
 
-hm_epochs = 10
+hm_epochs = 5000
 
 for i in range(hm_epochs):
     current = 0
-    increment = 200
+    increment = 50
     not_maximum = True
     all_files = os.listdir(train_data_dir)
     maximum = len(all_files)
     random.shuffle(all_files)
 
     while not_maximum:
-        print("WORKING ON {}:{}".format(current, current+increment))
-        no_attacks = []
-        attack_closest_to_nexus = []
-        attack_enemy_structures = []
-        attack_enemy_start = []
+        try:
+            print("WORKING ON {}:{}, EPOCH:{}".format(
+                current, current + increment, i))
 
-        for file in all_files[current:current+increment]:
-            full_path = os.path.join(train_data_dir, file)
-            data = np.load(full_path)
-            data = list(data)
-            for d in data:
-                choice = np.argmax(d[0])
-                if choice == 0:
-                    no_attacks.append([d[0], d[1]])
-                elif choice == 1:
-                    attack_closest_to_nexus.append([d[0], d[1]])
-                elif choice == 2:
-                    attack_enemy_structures.append([d[0], d[1]])
-                elif choice == 3:
-                    attack_enemy_start.append([d[0], d[1]])
+            choices = {0: [],
+                       1: [],
+                       2: [],
+                       3: [],
+                       4: [],
+                       5: [],
+                       6: [],
+                       7: [],
+                       8: [],
+                       9: [],
+                       10: [],
+                       11: [],
+                       12: [],
+                       13: [],
+                       }
 
-        lengths = check_data()
-        lowest_data = min(lengths)
+            for file in all_files[current:current + increment]:
+                try:
+                    full_path = os.path.join(train_data_dir, file)
+                    data = np.load(full_path)
+                    data = list(data)
+                    for d in data:
+                        choice = np.argmax(d[0])
+                        choices[choice].append([d[0], d[1]])
+                except Exception as e:
+                    print(str(e))
 
-        random.shuffle(no_attacks)
-        random.shuffle(attack_closest_to_nexus)
-        random.shuffle(attack_enemy_structures)
-        random.shuffle(attack_enemy_start)
+            lengths = check_data(choices)
 
-        no_attacks = no_attacks[:lowest_data]
-        attack_closest_to_nexus = attack_closest_to_nexus[:lowest_data]
-        attack_enemy_structures = attack_enemy_structures[:lowest_data]
-        attack_enemy_start = attack_enemy_start[:lowest_data]
+            lowest_data = min(lengths)
 
-        check_data()
+            for choice in choices:
+                random.shuffle(choices[choice])
+                choices[choice] = choices[choice][:lowest_data]
 
-        train_data = no_attacks + attack_closest_to_nexus + attack_enemy_structures + attack_enemy_start
+            check_data(choices)
 
-        random.shuffle(train_data)
-        print(len(train_data))
+            train_data = []
 
-        test_size = 100
-        batch_size = 128
+            for choice in choices:
+                for d in choices[choice]:
+                    train_data.append(d)
 
-        x_train = np.array([i[1] for i in train_data[:-test_size]]).reshape(-1, 176, 200, 3)
-        y_train = np.array([i[0] for i in train_data[:-test_size]]).reshape(-1, 4)
+            random.shuffle(train_data)
+            print(len(train_data))
 
-        x_test = np.array([i[1] for i in train_data[-test_size:]]).reshape(-1, 176, 200, 3)
-        y_test = np.array([i[0] for i in train_data[-test_size:]]).reshape(-1, 4)
+            test_size = 100
+            batch_size = 128  # 128 best so far.
 
-        model.fit(x_train, y_train,
-                  batch_size=batch_size,
-                  validation_data=(x_test, y_test),
-                  shuffle=True,
-                  verbose=1, callbacks=[tensorboard])
+            x_train = np.array(
+                [i[1] for i in train_data[:-test_size]]).reshape(-1, 176, 200, 3)
+            y_train = np.array(
+                [i[0] for i in train_data[:-test_size]])
 
-        model.save("BasicCNN-{}-epochs-{}-LR-STAGE1".format(hm_epochs, learning_rate))
+            x_test = np.array(
+                [i[1] for i in train_data[-test_size:]]).reshape(-1, 176, 200, 3)
+            y_test = np.array(
+                [i[0] for i in train_data[-test_size:]])
+
+            model.fit(x_train, y_train,
+                      batch_size=batch_size,
+                      validation_data=(x_test, y_test),
+                      shuffle=True,
+                      epochs=1,
+                      verbose=1, callbacks=[tensorboard])
+
+            model.save("BasicCNN-5000-epochs-0.001-LR-STAGE2")
+        except Exception as e:
+            print(str(e))
+            print(traceback.format_exc())
         current += increment
         if current > maximum:
             not_maximum = False

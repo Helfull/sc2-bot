@@ -1,12 +1,10 @@
 from sc2.constants import *
+from .BuildUnit import BuildUnit
 
 
-class BuildForceAction:
-
-    def __init__(self, ai):
-        self.ai = ai
+class BuildVoidray(BuildUnit):
 
     async def handle(self):
         for sg in self.ai.units(STARGATE).ready.noqueue:
-            if self.ai.can_afford(VOIDRAY) and self.ai.supply_left > 0:
+            if self.can_train(VOIDRAY):
                 await self.ai.do(sg.train(VOIDRAY))

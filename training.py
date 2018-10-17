@@ -50,7 +50,7 @@ tensorboard = TensorBoard(
 
 train_data_dir = "train_data_intel"
 
-# model = keras.models.load_model('BasicCNN-10-epochs-0.0001-LR-STAGE1')
+# model = keras.models.load_model("BasicCNN-10-epochs-0.0001-LR-STAGE2.model")
 ACTION_SIZE = 14
 
 
@@ -126,7 +126,6 @@ for i in range(hm_epochs):
                     train_data.append(d)
 
             random.shuffle(train_data)
-            print(len(train_data))
 
             test_size = 100
             batch_size = 128  # 128 best so far.
@@ -134,12 +133,11 @@ for i in range(hm_epochs):
             x_train = np.array(
                 [i[1] for i in train_data[:-test_size]]).reshape(-1, 176, 200, 3)
             y_train = np.array(
-                [i[0] for i in train_data[:-test_size]])
-
+                [i[0] for i in train_data[:-test_size]]).reshape(-1, 14)
             x_test = np.array(
                 [i[1] for i in train_data[-test_size:]]).reshape(-1, 176, 200, 3)
-            y_test = np.array(
-                [i[0] for i in train_data[-test_size:]])
+            y_test = np.array([i[0]
+                               for i in train_data[-test_size:]]).reshape(-1, 14)
 
             model.fit(x_train, y_train,
                       batch_size=batch_size,
@@ -148,7 +146,7 @@ for i in range(hm_epochs):
                       epochs=1,
                       verbose=1, callbacks=[tensorboard])
 
-            model.save("BasicCNN-5000-epochs-0.001-LR-STAGE2")
+            model.save("BasicCNN-5000-epochs-0.001-LR-STAGE2.model")
         except Exception as e:
             print(str(e))
             print(traceback.format_exc())

@@ -24,6 +24,9 @@ from .actions.DefendBase import *
 from .actions.GroupUnits import *
 from .actions.AttackEnemyStart import *
 from .actions.DoNothing import *
+from .actions.BuildScout import *
+from .actions.SendScout import *
+from .actions.BuildRobotics import *
 
 
 class HelBot(sc2.BotAI):
@@ -55,7 +58,10 @@ class HelBot(sc2.BotAI):
             10: DoNothing(self),
             11: GroupUnits(self),
             12: DefendBase(self),
-            13: AttackEnemyStart(self)
+            13: AttackEnemyStart(self),
+            14: BuildScout(self),
+            15: SendScout(self),
+            16: BuildRobotics(self)
         }
 
         if self.model:
